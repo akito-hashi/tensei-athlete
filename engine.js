@@ -193,8 +193,9 @@
     if (rand(game) < greatP) { r.kind = "great"; r.mult = 2; }
     const m = D.TALENT_MULT[life.talents[life.sport]] * D.MOTIVATION_MULT[life.motivation - 1] * r.mult;
     const exp = game.inherit.exp[life.sport] || 0;
-    r.gains[p.main] = Math.round((D.PRACTICE_GAIN.main + exp) * m) + randInt(game, 0, 1) + friends.length;
-    r.gains[p.sub] = (r.gains[p.sub] || 0) + Math.round(D.PRACTICE_GAIN.sub * m);
+    const bonus = game.inherit.bonus;
+    r.gains[p.main] = Math.round((D.PRACTICE_GAIN.main + exp) * m * (1 + bonus[p.main])) + randInt(game, 0, 1) + friends.length;
+    r.gains[p.sub] = (r.gains[p.sub] || 0) + Math.round(D.PRACTICE_GAIN.sub * m * (1 + bonus[p.sub]));
     addStats(life, r.gains);
     for (const f of friends) r.friendsMet.push(addFriend(life, f, 10 + randInt(game, 0, 4)));
     const fromFriend = r.friendsMet.find((x) => x.skill);
@@ -326,9 +327,9 @@
 
   function displayFor(sport, perf, margin, win, game) {
     const p = Math.max(0, perf);
-    const place = win ? 1 : Math.min(8, 2 + Math.floor(-margin / 8));
-    if (sport === "track") return { time: (9.5 + 5 * Math.exp(-p / 100)).toFixed(2), place };
-    if (sport === "gym") return { score: (8 + 7 * (1 - Math.exp(-p / 120))).toFixed(3), place };
+    const place = win ? 1 : Math.min(8, 2 + Math.floor(-margin / 16));
+    if (sport === "track") return { time: (9.5 + 5 * Math.exp(-p / 200)).toFixed(2), place };
+    if (sport === "gym") return { score: (8 + 7 * (1 - Math.exp(-p / 240))).toFixed(3), place };
     const m = Math.abs(margin);
     return { how: m > 2 * D.LUCK_SCALE ? "一本" : m > 0.7 * D.LUCK_SCALE ? "技あり" : "判定", place };
   }
@@ -386,6 +387,56 @@
     life.phase = "retire";
   }
 
-  return { newGame, startLife, childStep, recommendSport, chooseSport, actions, train, resolveEvent, riskOf,
+  // ---- 転生 ----
+  function lifeMedal(game, lifeNo) {
+    const order = ["gold", "silver", "bronze"];
+    let best = null;
+    for (const s of D.SPORTS) for (const m of game.medals[s]) if (m.lifeNo === lifeNo && (best == null || order.indexOf(m.medal) < order.indexOf(best))) best = m.medal;
+    return best;
+  }
+
+  function inheritGain(life) {
+    return D.INHERIT_BASE + (life.bestWon + 1) * D.INHERIT_PER_STAGE;
+  }
+
+  function defaultKeepSkill(game) {
+    const cand = game.life.skills.filter((id) => !game.inherit.innateSkills.includes(id));
+    cand.sort((a, b) => (D.SKILLS[b].power || 0) - (D.SKILLS[a].power || 0));
+    return cand[0] || null;
+  }
+
+  function reincarnate(game, { keepSkill } = {}) {
+    const life = game.life;
+    if (!life || !["retire", "gold"].includes(life.phase)) throw new Error("引退してから転生します");
+    if (keepSkill != null && !life.skills.includes(keepSkill)) throw new Error("持っていないスキルです");
+    const kept = keepSkill != null ? keepSkill : defaultKeepSkill(game);
+    const gain = inheritGain(life);
+    for (const k of D.STATS) game.inherit.bonus[k] = Math.round((game.inherit.bonus[k] + gain) * 1000) / 1000;
+    game.inherit.exp[life.sport] += 1;
+    if (kept && !game.inherit.innateSkills.includes(kept)) game.inherit.innateSkills.push(kept);
+    game.lives.push({
+      lifeNo: game.lifeNo, sport: life.sport, talents: life.talents, bestWon: life.bestWon,
+      bestName: life.bestWon >= 0 ? D.STAGES[life.bestWon].name : null,
+      medal: lifeMedal(game, game.lifeNo), endAge: life.age,
+    });
+    startLife(game);
+    return { bonusGain: gain, sport: game.lives[game.lives.length - 1].sport, keptSkill: kept };
+  }
+
+  // メダル図鑑：競技ごとのメダル数と、いちばん遠くまで勝ち進んだ大会
+  function medalBook(game) {
+    const lives = [...game.lives];
+    const L = game.life;
+    if (L && ["retire", "gold"].includes(L.phase)) lives.push({ sport: L.sport, bestWon: L.bestWon });
+    const book = {};
+    for (const s of D.SPORTS) {
+      const count = (m) => game.medals[s].filter((x) => x.medal === m).length;
+      const bw = Math.max(-1, ...lives.filter((x) => x.sport === s).map((x) => x.bestWon));
+      book[s] = { gold: count("gold"), silver: count("silver"), bronze: count("bronze"), best: bw >= 0 ? D.STAGES[bw].name : null };
+    }
+    return book;
+  }
+
+  return { reincarnate, medalBook, newGame, startLife, childStep, recommendSport, chooseSport, actions, train, resolveEvent, riskOf,
     stageChain, power, tournamentPreview, runTournament, olympicMedal, retire, rand, randInt };
 });

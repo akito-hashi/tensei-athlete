@@ -129,10 +129,11 @@ test("22歳のオリンピックで勝つと金メダル → クリア", () => {
 });
 
 test("オリンピックで惜しく負けると銀・銅（クリアにはならない）", () => {
-  assert.equal(E.olympicMedal(5), "gold");
-  assert.equal(E.olympicMedal(-1), "silver");
-  assert.equal(E.olympicMedal(-15), "bronze");
-  assert.equal(E.olympicMedal(-60), null);
+  const S = D.LUCK_SCALE;
+  assert.equal(E.olympicMedal(0.2 * S), "gold");
+  assert.equal(E.olympicMedal(-0.1 * S), "silver");
+  assert.equal(E.olympicMedal(-1.5 * S), "bronze");
+  assert.equal(E.olympicMedal(-5 * S), null);
 });
 
 test("26歳の大会が終わると引退。高校卒業（18歳）からは自分で引退もできる", () => {
