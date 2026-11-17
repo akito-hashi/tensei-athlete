@@ -122,6 +122,7 @@ test("音はタイトルで消せて、その設定が残る。音ありで遊�
   await p.$eval('[data-act="start"]', (e) => e.click());
   await p.$eval('[data-act="grow"]', (e) => e.click());
   for (let i = 0; i < 4; i++) await p.$eval('[data-lesson="track"]', (e) => e.click());
+  await p.$eval('[data-sport="track"]', (e) => e.click()); // おすすめは才能しだいなので、陸上を自分で選ぶ
   await p.$eval('[data-act="join"]', (e) => e.click());
   for (let i = 0; i < 100 && (await p.$eval("#app", (el) => el.dataset.screen)) !== "tour"; i++) {
     if (await p.$("#popup")) await p.$eval('#popup [data-act="ok"]', (e) => e.click());
