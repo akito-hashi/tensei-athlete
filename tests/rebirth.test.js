@@ -83,3 +83,30 @@ test("保存した状態からでも転生後の続きが同じになる", () =>
   for (const g of [a, b]) { E.reincarnate(g, { keepSkill: "honban" }); E.childStep(g, "track"); }
   assert.deepEqual(a, b);
 });
+
+test("メダル図鑑は、いま遊んでいる人生の勝ち進みも数える", () => {
+  const g = E.newGame({ name: "x", gender: "m", seed: 8 });
+  E.startLife(g);
+  for (let i = 0; i < 4; i++) E.childStep(g, "play");
+  E.chooseSport(g, "track");
+  g.life.bestWon = 2;
+  assert.equal(E.medalBook(g).track.best, D.STAGES[2].name);
+});
+
+test("こわれた・古いセーブを読みこむときは、知らないスキルやイベントを取りのぞく", () => {
+  const g = retiredAt(9, { skills: ["honban"] });
+  E.reincarnate(g);
+  for (let i = 0; i < 4; i++) E.childStep(g, "play");
+  E.chooseSport(g, "judo");
+  g.life.skills.push("nazo_skill");
+  g.inherit.innateSkills.push("nazo2");
+  g.life.pendingEvent = "nazo_event";
+  assert.equal(E.sanitize(g), true);
+  assert.ok(!g.life.skills.includes("nazo_skill"));
+  assert.ok(!g.inherit.innateSkills.includes("nazo2"));
+  assert.equal(g.life.pendingEvent, null);
+  assert.equal(E.sanitize({ v: 1 }), false);
+  assert.equal(E.sanitize(null), false);
+  const bad = JSON.parse(JSON.stringify(g)); bad.life.sport = "sumo";
+  assert.equal(E.sanitize(bad), false);
+});

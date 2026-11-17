@@ -144,9 +144,22 @@
     return inj + (1 - inj) * failChance(life);
   }
 
+  // その競技で大事な練習（重みの大きい能力が伸びる上位 2つ）
+  function keyPractices(sport) {
+    const w = D.SPORT_INFO[sport].weights;
+    const val = (p) => w[p.main] * 2 + w[p.sub];
+    return D.PRACTICES[sport].slice().sort((a, b) => val(b) - val(a)).slice(0, 2).map((p) => p.id);
+  }
+  // その競技で大事な能力（重みの上位 2つ）
+  function keyStats(sport) {
+    const w = D.SPORT_INFO[sport].weights;
+    return D.STATS.slice().sort((a, b) => w[b] - w[a]).slice(0, 2);
+  }
+
   function actions(life) {
+    const keys = keyPractices(life.sport);
     const list = D.PRACTICES[life.sport].map((p) => ({
-      id: p.id, kind: "practice", label: p.label, main: p.main, sub: p.sub,
+      id: p.id, kind: "practice", label: p.label, main: p.main, sub: p.sub, key: keys.includes(p.id),
       friends: (life.board && life.board[p.id]) || [], risk: riskOf(life), enabled: !life.injured,
     }));
     list.push({ id: "rest", kind: "rest", label: "休む", enabled: true, friends: [] });
@@ -284,9 +297,10 @@
     if (c.allFriends) for (const f of D.FRIENDS) friendsMet.push(addFriend(life, f.id, c.allFriends));
     if (c.friends) for (const [id, n] of Object.entries(c.friends)) friendsMet.push(addFriend(life, id, n));
     let skillGot = c.skill ? learnSkill(life, c.skill) : null;
+    const text = c.skill && !skillGot && c.knownText ? c.knownText : c.text;
     if (!skillGot) { const fs = friendsMet.find((x) => x.skill); if (fs) skillGot = fs.skill; }
     life.pendingEvent = null;
-    return { text: c.text, friendsMet, skillGot };
+    return { text, friendsMet, skillGot };
   }
 
   // ---- 大会 ----
@@ -443,7 +457,7 @@
   function medalBook(game) {
     const lives = [...game.lives];
     const L = game.life;
-    if (L && ["retire", "gold"].includes(L.phase)) lives.push({ sport: L.sport, bestWon: L.bestWon });
+    if (L && L.sport) lives.push({ sport: L.sport, bestWon: L.bestWon });
     const book = {};
     for (const s of D.SPORTS) {
       const count = (m) => game.medals[s].filter((x) => x.medal === m).length;
@@ -453,6 +467,37 @@
     return book;
   }
 
-  return { previewGain, reincarnate, medalBook, newGame, startLife, childStep, recommendSport, chooseSport, actions, train, resolveEvent, riskOf,
+  // 読みこんだセーブを点検する。遊べない形なら false。知らないスキル・イベントは取りのぞく
+  function sanitize(game) {
+    try {
+      if (!game || game.v !== 1 || !game.life || !game.inherit || !game.medals || !Array.isArray(game.lives)) return false;
+      const L = game.life;
+      if (!["child", "choose", "train", "retire", "gold"].includes(L.phase)) return false;
+      if (L.sport != null && !D.SPORTS.includes(L.sport)) return false;
+      if (L.phase !== "child" && L.phase !== "choose" && !L.sport) return false;
+      for (const s of D.SPORTS) {
+        if (!D.TALENT_RANKS.includes(L.talents && L.talents[s])) return false;
+        if (!Array.isArray(game.medals[s])) return false;
+      }
+      for (const k of D.STATS) if (typeof L.stats[k] !== "number" || !isFinite(L.stats[k])) return false;
+      const known = (id) => Object.prototype.hasOwnProperty.call(D.SKILLS, id);
+      L.skills = (L.skills || []).filter(known);
+      game.inherit.innateSkills = (game.inherit.innateSkills || []).filter(known);
+      if (L.pendingEvent && !D.EVENTS.some((e) => e.id === L.pendingEvent)) L.pendingEvent = null;
+      if (typeof L.bestWon !== "number" || !D.STAGES[L.bestWon]) L.bestWon = -1;
+      for (const x of game.lives) x.bestName = x.bestWon >= 0 && D.STAGES[x.bestWon] ? D.STAGES[x.bestWon].name : null;
+      if (L.phase === "train") rollBoardIfMissing(game);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+  function rollBoardIfMissing(game) {
+    const L = game.life, ids = D.PRACTICES[L.sport].map((p) => p.id);
+    if (!L.board || ids.some((id) => !Array.isArray(L.board[id]))) rollBoard(game);
+    for (const id of ids) L.board[id] = L.board[id].filter((f) => D.FRIENDS.some((x) => x.id === f));
+  }
+
+  return { sanitize, keyPractices, keyStats, previewGain, reincarnate, medalBook, newGame, startLife, childStep, recommendSport, chooseSport, actions, train, resolveEvent, riskOf,
     stageChain, power, tournamentPreview, runTournament, olympicMedal, retire, rand, randInt };
 });

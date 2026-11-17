@@ -102,6 +102,9 @@ test("大成功はときどき起き、伸びが 2倍になる", () => {
     if (r.kind !== "great") continue;
     great++;
     assert.equal(r.mult, 2);
+    const est = E.previewGain(plain, D.PRACTICES.track[0].id);
+    const main = r.gains[D.PRACTICES.track[0].main];
+    assert.ok(main >= 2 * est.main - 1 && main <= 2 * est.main + 2, `伸びが 2倍になっていない ${main} vs ${est.main}`);
   }
   assert.ok(great > n * 0.05 && great < n * 0.2, `great ${great}/${n}`);
 });
@@ -192,4 +195,26 @@ test("練習ボタンに出す『伸びの目安』は、ふつうに成功し�
     assert.equal(r.gains[p.sub], est.sub);
   }
   assert.ok(checked > 20);
+});
+
+test("すでに覚えているスキルのイベントでは『覚えた』と言わない", () => {
+  const g = trainee(4);
+  g.life.skills.push("shuchu");
+  g.life.pendingEvent = "himo";
+  const r = E.resolveEvent(g, 0);
+  assert.equal(r.skillGot, null);
+  assert.ok(!r.text.includes("覚えた"), r.text);
+});
+
+test("その競技で大事な練習（★）が 2つずつ決まっていて、画面用に分かる", () => {
+  for (const s of D.SPORTS) {
+    const g = trainee(1, s);
+    const keys = E.actions(g.life).filter((a) => a.key);
+    assert.equal(keys.length, 2, s);
+    const w = D.SPORT_INFO[s].weights;
+    const val = (a) => w[a.main] * 2 + w[a.sub];
+    const others = E.actions(g.life).filter((a) => a.kind === "practice" && !a.key);
+    for (const k of keys) for (const o of others) assert.ok(val(k) >= val(o));
+    assert.equal(E.keyStats(s).length, 2);
+  }
 });

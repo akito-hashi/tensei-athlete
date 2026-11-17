@@ -11,7 +11,7 @@
   const SPORTS = ["track", "judo", "gym"];
   const SPORT_INFO = {
     track: { name: "陸上100m", short: "陸上", emoji: "🏃", weights: { spd: 0.45, pow: 0.25, sta: 0.1, tec: 0.1, men: 0.1 } },
-    judo: { name: "柔道", short: "柔道", emoji: "🥋", weights: { spd: 0.1, pow: 0.35, sta: 0.2, tec: 0.2, men: 0.15 } },
+    judo: { name: "柔道", short: "柔道", emoji: "🥋", weights: { spd: 0.05, pow: 0.4, sta: 0.15, tec: 0.3, men: 0.1 } },
     gym: { name: "体操", short: "体操", emoji: "🤸", weights: { spd: 0.1, pow: 0.15, sta: 0.1, tec: 0.45, men: 0.2 } },
   };
 
@@ -98,7 +98,7 @@
       { label: "背中をきたえる", text: "背中が少し語りはじめた。", stats: { pow: 3, tec: 2 } },
       { label: "意味を考える", text: "三日考えた。わからない。でも心が強くなった。", stats: { men: 5 } } ] },
     { id: "himo", text: "くつひもを結び直していたら、新しい動きをひらめいた！", choices: [
-      { label: "集中して試す", text: "できた！ スキル「集中力」を覚えた！", skill: "shuchu" },
+      { label: "集中して試す", text: "できた！ スキル「集中力」を覚えた！", skill: "shuchu", knownText: "やっぱりできた。もう体が覚えている！" },
       { label: "メモだけする", text: "メモが読めない字だった。技術が少し上がった。", stats: { tec: 2 } } ] },
     { id: "inu", text: "近所の犬が競走したそうにこっちを見ている。", choices: [
       { label: "本気で走る", text: "ギリギリ勝った。速さが上がった！", stats: { spd: 5 }, stamina: -10 },
@@ -120,7 +120,7 @@
   const VOLUNTARY_RETIRE_AGE = 18;
   const OLYMPIC_AGES = [22, 26];
   // level: 相手の強さ。順番は「どこまで行ったか」の高さ
-  // 数値は tests/balance.test.js のボットで調整（上手な人で 3〜5回目の人生に金）
+  // 数値は tests/balance.test.js のボットで調整（ふつうの子どもで 3〜5回目、上手な人で 2〜4回目の人生に金）
   const STAGES = [
     { id: "chiku", name: "地区大会", level: 45 },
     { id: "ken_j", name: "県大会（中学）", level: 85 },
@@ -128,10 +128,10 @@
     { id: "ken_h", name: "県大会（高校）", level: 160 },
     { id: "chiho", name: "地方大会", level: 220 },
     { id: "inter", name: "インターハイ", level: 300 },
-    { id: "nihon_q", name: "日本選手権 予選", level: 460 },
-    { id: "nihon", name: "日本選手権", level: 570 },
-    { id: "sekai", name: "世界選手権", level: 680 },
-    { id: "olympic", name: "オリンピック", level: 750 },
+    { id: "nihon_q", name: "日本選手権 予選", level: 440 },
+    { id: "nihon", name: "日本選手権", level: 540 },
+    { id: "sekai", name: "世界選手権", level: 630 },
+    { id: "olympic", name: "オリンピック", level: 690 },
   ];
   const LUCK_SCALE = 24;
   // 転生ボーナス：毎回 INHERIT_BASE ＋ 勝ち進んだ大会の段数 × INHERIT_PER_STAGE（能力の伸びと初期値にかかる）

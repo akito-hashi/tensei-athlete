@@ -26,6 +26,20 @@ function smartPolicy(g) {
   return E.train(g, opts.reduce((a, b) => (val(b) > val(a) ? b : a)).id);
 }
 
+// ふつうの子ども：おすすめの競技を選び、★の練習を中心に（ときどき気まぐれに）練習する。大会前に休む作戦はしない
+function casualPolicy(g, forceSport) {
+  const L = g.life;
+  const pick = (arr) => arr[E.randInt(g, 0, arr.length - 1)];
+  if (L.phase === "child") return E.childStep(g, pick(["track", "judo", "gym", "play"]));
+  if (L.phase === "choose") return E.chooseSport(g, forceSport || E.recommendSport(L));
+  if (L.pendingEvent) return E.resolveEvent(g, E.randInt(g, 0, D.EVENTS.find((e) => e.id === L.pendingEvent).choices.length - 1));
+  if (L.pendingTournament) return E.runTournament(g);
+  if (L.injured || L.stamina < 35) return E.train(g, L.motivation <= 2 ? "play" : "rest");
+  const acts = E.actions(L).filter((a) => a.kind === "practice");
+  const keys = acts.filter((a) => a.key);
+  return E.train(g, (E.rand(g) < 0.7 ? pick(keys) : pick(acts)).id);
+}
+
 // でたらめなプレイヤー
 function randomPolicy(g) {
   const L = g.life;
@@ -66,4 +80,4 @@ function playUntilClear(seed, policy, maxLives = 10) {
   return { cleared: g.cleared, lives, game: g };
 }
 
-module.exports = { smartPolicy, randomPolicy, playUntilClear };
+module.exports = { smartPolicy, casualPolicy, randomPolicy, playUntilClear };
