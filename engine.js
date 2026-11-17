@@ -100,6 +100,8 @@
     life.turn = 0;
     life.board = {};
     life.pendingEvent = null;
+    life.pendingTournament = null;
+    life.bestWon = -1;
     rollBoard(game);
     return life;
   }
@@ -240,7 +242,10 @@
     const life = game.life;
     life.turn += 1;
     life.slot += 1;
-    if (!life.noEvents && rand(game) < D.EVENT_CHANCE) {
+    if (life.slot >= D.TURNS_PER_YEAR) {
+      life.pendingTournament = { age: life.age };
+      r.tournament = true;
+    } else if (!life.noEvents && rand(game) < D.EVENT_CHANCE) {
       const ev = D.EVENTS[randInt(game, 0, D.EVENTS.length - 1)];
       life.pendingEvent = ev.id;
       r.event = ev.id;
@@ -267,5 +272,120 @@
     return { text: c.text, friendsMet, skillGot };
   }
 
-  return { newGame, startLife, childStep, recommendSport, chooseSport, actions, train, resolveEvent, riskOf, rand, randInt };
+  // ---- 大会 ----
+  const STAGE_INDEX = Object.fromEntries(D.STAGES.map((s, i) => [s.id, i]));
+  const stage = (id) => D.STAGES[STAGE_INDEX[id]];
+
+  function stageChain(age) {
+    let ids;
+    if (age <= 14) ids = ["chiku", "ken_j", "zenkoku_j"];
+    else if (age <= 17) ids = ["ken_h", "chiho", "inter"];
+    else ids = ["nihon_q", "nihon", D.OLYMPIC_AGES.includes(age) ? "olympic" : "sekai"];
+    return ids.map(stage);
+  }
+
+  function activeSkills(life) {
+    return life.skills
+      .map((id) => ({ id, ...D.SKILLS[id] }))
+      .filter((s) => s.power && (!s.sport || s.sport === life.sport))
+      .sort((a, b) => b.power - a.power);
+  }
+
+  // 大会での実力：競技ごとの重みつき能力 × 調子 ＋ スキル
+  function power(life) {
+    const w = D.SPORT_INFO[life.sport].weights;
+    let base = 0;
+    for (const k of D.STATS) base += w[k] * life.stats[k];
+    const cond = (0.85 + 0.15 * life.stamina / 100) * (0.94 + 0.03 * (life.motivation - 1));
+    const skill = activeSkills(life).reduce((a, s) => a + s.power, 0);
+    return base * cond + skill;
+  }
+
+  const winChance = (pw, level) => 1 / (1 + Math.exp(-(pw - level) / D.LUCK_SCALE));
+
+  function tournamentPreview(game) {
+    const life = game.life;
+    const pw = power(life);
+    return {
+      age: life.age, power: pw,
+      stages: stageChain(life.age).map((s) => ({ id: s.id, name: s.name, level: s.level, chance: winChance(pw, s.level) })),
+    };
+  }
+
+  function olympicMedal(margin) {
+    if (margin >= 0) return "gold";
+    if (margin >= -D.LUCK_SCALE) return "silver";
+    if (margin >= -2 * D.LUCK_SCALE) return "bronze";
+    return null;
+  }
+
+  function luck(game) {
+    const u = Math.min(1 - 1e-9, Math.max(1e-9, rand(game)));
+    return D.LUCK_SCALE * Math.log(u / (1 - u)); // ロジスティック分布：勝つ割合が winChance と一致する
+  }
+
+  function displayFor(sport, perf, margin, win, game) {
+    const p = Math.max(0, perf);
+    const place = win ? 1 : Math.min(8, 2 + Math.floor(-margin / 8));
+    if (sport === "track") return { time: (9.5 + 5 * Math.exp(-p / 100)).toFixed(2), place };
+    if (sport === "gym") return { score: (8 + 7 * (1 - Math.exp(-p / 120))).toFixed(3), place };
+    const m = Math.abs(margin);
+    return { how: m > 2 * D.LUCK_SCALE ? "一本" : m > 0.7 * D.LUCK_SCALE ? "技あり" : "判定", place };
+  }
+
+  function linesFor(game, s, d, win, skills) {
+    const n = game.name, sp = game.life.sport;
+    const lines = [];
+    if (sp === "track") lines.push(`【${s.name}】${n}、スタートラインへ。`, "位置について……ドン！");
+    else if (sp === "judo") lines.push(`【${s.name}】${n}、畳の上へ。`, "はじめ！");
+    else lines.push(`【${s.name}】${n}、演技スタート。`, "大きく深呼吸……！");
+    for (const k of skills) lines.push(`スキル「${k.name}」発動！`);
+    if (sp === "track") lines.push(win ? `${d.time}秒！ 1着でゴール！！` : `${d.time}秒…… ${d.place}着。あと少し！`);
+    else if (sp === "judo") lines.push(win ? `${d.how}！ ${n}の勝ち！！` : `${d.how}で負け……。次こそ！`);
+    else lines.push(win ? `${d.score}点！ トップに立った！！` : `${d.score}点…… ${d.place}位。くやしい！`);
+    return lines;
+  }
+
+  function runTournament(game) {
+    const life = game.life;
+    assertPhase(life, "train");
+    if (!life.pendingTournament) throw new Error("大会はまだです");
+    if (life.pendingEvent) throw new Error("イベントをえらんでください");
+    const pw = power(life);
+    const skills = activeSkills(life).slice(0, 2);
+    const rounds = [];
+    let medal = null;
+    for (const s of stageChain(life.age)) {
+      const chance = winChance(pw, s.level);
+      const perf = pw + luck(game);
+      const margin = perf - s.level;
+      const win = margin >= 0;
+      const display = displayFor(life.sport, perf, margin, win, game);
+      if (s.id === "olympic") { medal = olympicMedal(margin); if (medal === "silver") display.place = 2; if (medal === "bronze") display.place = 3; }
+      rounds.push({ stage: s.id, name: s.name, chance, win, margin, display, lines: linesFor(game, s, display, win, skills) });
+      if (win) life.bestWon = Math.max(life.bestWon, STAGE_INDEX[s.id]);
+      if (!win) break;
+    }
+    const age = life.age;
+    const last = rounds[rounds.length - 1];
+    life.history.push({ age, reached: last.stage, won: last.win, medal });
+    if (medal) game.medals[life.sport].push({ lifeNo: game.lifeNo, age, medal });
+    life.pendingTournament = null;
+    life.year += 1;
+    life.age += 1;
+    life.slot = 0;
+    if (medal === "gold") { life.phase = "gold"; game.cleared = true; }
+    else if (age >= D.RETIRE_AGE) life.phase = "retire";
+    return { age, rounds, medal, best: last.win ? last.stage : rounds.length > 1 ? rounds[rounds.length - 2].stage : null };
+  }
+
+  function retire(game) {
+    const life = game.life;
+    assertPhase(life, "train");
+    if (life.age < D.VOLUNTARY_RETIRE_AGE) throw new Error(`${D.VOLUNTARY_RETIRE_AGE}歳から引退できます`);
+    life.phase = "retire";
+  }
+
+  return { newGame, startLife, childStep, recommendSport, chooseSport, actions, train, resolveEvent, riskOf,
+    stageChain, power, tournamentPreview, runTournament, olympicMedal, retire, rand, randInt };
 });

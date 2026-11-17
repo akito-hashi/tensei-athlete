@@ -146,6 +146,8 @@ test("イベントが起きると、えらぶまで練習できない。えら�
       const r = E.resolveEvent(g, 0);
       assert.ok(typeof r.text === "string" && r.text.length > 0);
       assert.equal(g.life.pendingEvent, null);
+    } else if (g.life.pendingTournament) {
+      E.runTournament(g);
     } else {
       g.life.stamina = 100; g.life.injured = 0;
       E.train(g, "rest");
@@ -164,6 +166,8 @@ test("でたらめに遊んでも、体力 0〜100・やる気 1〜5・能力 0 
         E.resolveEvent(g, E.randInt(g, 0, ev.choices.length - 1));
         continue;
       }
+      if (g.life.pendingTournament) { E.runTournament(g); continue; }
+      if (g.life.phase !== "train") break;
       const opts = E.actions(g.life).filter((a) => a.enabled);
       E.train(g, opts[E.randInt(g, 0, opts.length - 1)].id);
       const L = g.life;

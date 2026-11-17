@@ -114,6 +114,27 @@
   ];
   const EVENT_CHANCE = 0.15;
 
-  return { PRACTICES, PRACTICE_GAIN, MOTIVATION_MULT, MOTIVATION_LABELS, FRIENDS, FRIEND_TALK, SKILLS, GREAT_SKILL_POOL, EVENTS, EVENT_CHANCE,
+  // ---- 1年の流れと大会 ----
+  const TURNS_PER_YEAR = 7;
+  const RETIRE_AGE = 26;
+  const VOLUNTARY_RETIRE_AGE = 18;
+  const OLYMPIC_AGES = [22, 26];
+  // level: 相手の強さ。順番は「どこまで行ったか」の高さ
+  const STAGES = [
+    { id: "chiku", name: "地区大会", level: 30 },
+    { id: "ken_j", name: "県大会（中学）", level: 45 },
+    { id: "zenkoku_j", name: "全国中学大会", level: 65 },
+    { id: "ken_h", name: "県大会（高校）", level: 75 },
+    { id: "chiho", name: "地方大会", level: 95 },
+    { id: "inter", name: "インターハイ", level: 115 },
+    { id: "nihon_q", name: "日本選手権 予選", level: 135 },
+    { id: "nihon", name: "日本選手権", level: 160 },
+    { id: "sekai", name: "世界選手権", level: 190 },
+    { id: "olympic", name: "オリンピック", level: 200 },
+  ];
+  const LUCK_SCALE = 12; // 運の大きさ（大きいほど番狂わせが起きやすい）
+
+  return { TURNS_PER_YEAR, RETIRE_AGE, VOLUNTARY_RETIRE_AGE, OLYMPIC_AGES, STAGES, LUCK_SCALE,
+    PRACTICES, PRACTICE_GAIN, MOTIVATION_MULT, MOTIVATION_LABELS, FRIENDS, FRIEND_TALK, SKILLS, GREAT_SKILL_POOL, EVENTS, EVENT_CHANCE,
     STATS, STAT_LABELS, SPORTS, SPORT_INFO, TALENT_RANKS, TALENT_ODDS, TALENT_MULT, CHILD_TURNS, CHILD_LESSONS };
 });
