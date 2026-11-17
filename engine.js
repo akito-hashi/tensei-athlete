@@ -171,6 +171,24 @@
     return out;
   }
 
+  // 乱数と仲間を除いた伸び（練習ボタンの目安にも使う）
+  function baseGain(game, p, mult = 1) {
+    const life = game.life;
+    const m = D.TALENT_MULT[life.talents[life.sport]] * D.MOTIVATION_MULT[life.motivation - 1] * mult;
+    const exp = game.inherit.exp[life.sport] || 0;
+    const bonus = game.inherit.bonus;
+    return {
+      main: Math.round((D.PRACTICE_GAIN.main + exp) * m * (1 + bonus[p.main])),
+      sub: Math.round(D.PRACTICE_GAIN.sub * m * (1 + bonus[p.sub])),
+    };
+  }
+
+  function previewGain(game, practiceId) {
+    const p = D.PRACTICES[game.life.sport].find((x) => x.id === practiceId);
+    if (!p) throw new Error("知らない練習です: " + practiceId);
+    return { stat: p.main, subStat: p.sub, ...baseGain(game, p) };
+  }
+
   function practiceTurn(game, p) {
     const life = game.life;
     const r = { kind: "success", action: p.id, gains: {}, mult: 1, staminaCost: 0, friendsMet: [], skillGot: null };
@@ -191,11 +209,9 @@
     const friends = life.board[p.id] || [];
     const greatP = 0.1 + skillTrain(life, "greatPlus") + (friends.length ? 0.1 + skillTrain(life, "friendGreatPlus") : 0);
     if (rand(game) < greatP) { r.kind = "great"; r.mult = 2; }
-    const m = D.TALENT_MULT[life.talents[life.sport]] * D.MOTIVATION_MULT[life.motivation - 1] * r.mult;
-    const exp = game.inherit.exp[life.sport] || 0;
-    const bonus = game.inherit.bonus;
-    r.gains[p.main] = Math.round((D.PRACTICE_GAIN.main + exp) * m * (1 + bonus[p.main])) + randInt(game, 0, 1) + friends.length;
-    r.gains[p.sub] = (r.gains[p.sub] || 0) + Math.round(D.PRACTICE_GAIN.sub * m * (1 + bonus[p.sub]));
+    const base = baseGain(game, p, r.mult);
+    r.gains[p.main] = base.main + randInt(game, 0, 1) + friends.length;
+    r.gains[p.sub] = (r.gains[p.sub] || 0) + base.sub;
     addStats(life, r.gains);
     for (const f of friends) r.friendsMet.push(addFriend(life, f, 10 + randInt(game, 0, 4)));
     const fromFriend = r.friendsMet.find((x) => x.skill);
@@ -437,6 +453,6 @@
     return book;
   }
 
-  return { reincarnate, medalBook, newGame, startLife, childStep, recommendSport, chooseSport, actions, train, resolveEvent, riskOf,
+  return { previewGain, reincarnate, medalBook, newGame, startLife, childStep, recommendSport, chooseSport, actions, train, resolveEvent, riskOf,
     stageChain, power, tournamentPreview, runTournament, olympicMedal, retire, rand, randInt };
 });

@@ -177,3 +177,19 @@ test("でたらめに遊んでも、体力 0〜100・やる気 1〜5・能力 0 
     }
   }
 });
+
+test("練習ボタンに出す『伸びの目安』は、ふつうに成功したときの伸びと一致する", () => {
+  let checked = 0;
+  for (let seed = 1; seed <= 60; seed++) {
+    const g = trainee(seed);
+    const p = D.PRACTICES.track[1];
+    const est = E.previewGain(g, p.id);
+    const r = E.train(g, p.id);
+    if (r.kind !== "success") continue;
+    checked++;
+    const friends = r.friendsMet.length;
+    assert.ok(r.gains[p.main] - friends >= est.main && r.gains[p.main] - friends <= est.main + 1, `seed ${seed}`);
+    assert.equal(r.gains[p.sub], est.sub);
+  }
+  assert.ok(checked > 20);
+});

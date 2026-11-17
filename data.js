@@ -6,7 +6,7 @@
   "use strict";
 
   const STATS = ["spd", "pow", "sta", "tec", "men"];
-  const STAT_LABELS = { spd: "スピード", pow: "パワー", sta: "スタミナ", tec: "ワザ", men: "メンタル" };
+  const STAT_LABELS = { spd: "速さ", pow: "パワー", sta: "持久力", tec: "技術", men: "こころ" };
 
   const SPORTS = ["track", "judo", "gym"];
   const SPORT_INFO = {
@@ -86,8 +86,8 @@
       { label: "全部食べる", text: "おなかいっぱい。体力がもりもり回復！", stamina: 30, motivation: -1 },
       { label: "みんなに配る", text: "みんな笑顔。仲間との仲が深まった！", allFriends: 5, motivation: 1 } ] },
     { id: "hato", text: "練習中、ハトにずっと見つめられている気がする。", choices: [
-      { label: "見つめ返す", text: "ハトが先に目をそらした。メンタルが上がった！", stats: { men: 4 } },
-      { label: "気にせず走る", text: "ハトを置き去りにした。スピードが上がった！", stats: { spd: 3 } } ] },
+      { label: "見つめ返す", text: "ハトが先に目をそらした。こころが強くなった！", stats: { men: 4 } },
+      { label: "気にせず走る", text: "ハトを置き去りにした。速さが上がった！", stats: { spd: 3 } } ] },
     { id: "tv", text: "テレビの取材が来た！（地元のケーブルテレビ）", choices: [
       { label: "かっこよく答える", text: "放送は 3秒だった。でもやる気が上がった！", motivation: 1, stats: { men: 2 } },
       { label: "緊張でかむ", text: "かみまくった。もう何も怖くない。", stats: { men: 5 } } ] },
@@ -99,17 +99,17 @@
       { label: "意味を考える", text: "三日考えた。わからない。でも心が強くなった。", stats: { men: 5 } } ] },
     { id: "himo", text: "くつひもを結び直していたら、新しい動きをひらめいた！", choices: [
       { label: "集中して試す", text: "できた！ スキル「集中力」を覚えた！", skill: "shuchu" },
-      { label: "メモだけする", text: "メモが読めない字だった。ワザが少し上がった。", stats: { tec: 2 } } ] },
+      { label: "メモだけする", text: "メモが読めない字だった。技術が少し上がった。", stats: { tec: 2 } } ] },
     { id: "inu", text: "近所の犬が競走したそうにこっちを見ている。", choices: [
-      { label: "本気で走る", text: "ギリギリ勝った。スピードが上がった！", stats: { spd: 5 }, stamina: -10 },
+      { label: "本気で走る", text: "ギリギリ勝った。速さが上がった！", stats: { spd: 5 }, stamina: -10 },
       { label: "勝ちをゆずる", text: "犬はとても満足そうだ。こっちもうれしい。", motivation: 1 } ] },
     { id: "omamori", text: "モモが手作りのお守りをくれた。", choices: [
       { label: "大切にする", text: "なんだか力がわいてくる。", friends: { momo: 10 }, stats: { men: 3 } } ] },
     { id: "yashoku", text: "夜中にどうしてもおなかがすいた。", choices: [
-      { label: "がまんする", text: "がまんできた。メンタルが上がった！", stats: { men: 3 } },
+      { label: "がまんする", text: "がまんできた。こころが強くなった！", stats: { men: 3 } },
       { label: "食べる", text: "カップめんは正義。", stamina: 15, motivation: 1 } ] },
     { id: "gou_bento", text: "ゴウが特大のお弁当を分けてくれた。", choices: [
-      { label: "ありがたく食べる", text: "量がすごい。体力とパワーが上がった！", friends: { gou: 10 }, stamina: 20, stats: { pow: 2 } },
+      { label: "ありがたく食べる", text: "量がすごい。体力が回復して、パワーも上がった！", friends: { gou: 10 }, stamina: 20, stats: { pow: 2 } },
       { label: "半分だけ", text: "それでも多い。", friends: { gou: 5 }, stamina: 10 } ] },
   ];
   const EVENT_CHANCE = 0.15;
