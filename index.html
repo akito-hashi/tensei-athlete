@@ -9,11 +9,19 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@800&family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="転生アスリート">
 </head>
 <body class="night">
 <main id="app" data-screen="title" aria-live="polite"></main>
 <script src="data.js"></script>
 <script src="engine.js"></script>
+<script src="sfx.js"></script>
 <script src="app.js"></script>
+<script>
+  if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
 </body>
 </html>

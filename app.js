@@ -2,6 +2,7 @@
 (function () {
   "use strict";
   const D = window.GameData, E = window.Engine;
+  const S = window.Sfx || { play() {}, setOn() {}, isOn: () => false };
   const KEY = "tensei-athlete-v1";
   const FAST = new URLSearchParams(location.search).has("fast");
   const app = document.getElementById("app");
@@ -90,7 +91,7 @@
         <div class="logo"><div class="small">めざせ 金メダル</div><h1 class="big hot" style="margin:6px 0 0;font-weight:400">転生<br>アスリート</h1><div class="medal" aria-hidden="true">🥇</div></div>
         <div class="babies grow"><span aria-hidden="true">👶🧒🧑🏃🏅</span><small>何度生まれ変わっても、あの表彰台へ</small></div>
         <button class="btn" data-act="new">はじめから</button>${cont}
-        ${game ? `<button class="link" data-act="book">メダル図鑑</button>` : ""}`;
+        <div class="row between"><button class="link" data-act="sound" aria-label="効果音のオンオフ">${S.isOn() ? "🔊 音あり" : "🔇 音なし"}</button>${game ? `<button class="link" data-act="book">メダル図鑑</button>` : ""}</div>`;
     },
 
     name() {
@@ -209,6 +210,7 @@
       setTheme("night");
       const L = game.life;
       setTimeout(confetti, 0);
+      if (!ui.goldPlayed) { ui.goldPlayed = true; setTimeout(() => S.play("gold"), 0); }
       return `<div class="spot"></div><div class="grow"></div>
         <div class="goldmedal" aria-hidden="true">🥇</div>
         <div class="goldtext hot">金メダル！！</div>
@@ -279,7 +281,12 @@
     if (!ui.tour) return;
     const n = tourItems(ui.tour.res).length;
     if (ui.tour.shown >= n) return;
-    ui.timer = setTimeout(() => { ui.tour.shown++; render(); tick(); }, 650);
+    ui.timer = setTimeout(() => {
+      ui.tour.shown++;
+      const it = tourItems(ui.tour.res)[ui.tour.shown - 1];
+      if (it) S.play(it.cls === "win" ? "win" : it.cls === "lose" ? "lose" : it.cls === "sk" ? "skill" : "tap");
+      render(); tick();
+    }, 650);
   }
 
   // ---- ポップアップ ----
@@ -328,6 +335,7 @@
     save();
     ui.msg = trainMessage(r);
     ui.ups = r.gains || null;
+    S.play(r.skillGot ? "skill" : { great: "great", success: "good", fail: "fail", injury: "fail", rest: "rest", play: "good" }[r.kind]);
     if (r.kind === "injury") ui.popup = { kind: "injury", turns: game.life.injured };
     else if (r.kind === "great" || r.skillGot) {
       const by = (r.friendsMet || []).find((f) => f.skill);
@@ -345,7 +353,7 @@
       else if (d.lesson) { const r = E.childStep(game, d.lesson); save(); ui.msg = `${D.CHILD_LESSONS[d.lesson].label}：${r.text}（${Object.entries(r.gains).map(([k, v]) => `${D.STAT_LABELS[k]}+${v}`).join(" ")}）`; }
       else if (d.sport) ui.sportPick = d.sport;
       else if (d.gender) { ui.gender = d.gender; const n = document.getElementById("name"); ui.nameDraft = n ? n.value : ""; }
-      else if (d.choice != null) { const r = E.resolveEvent(game, +d.choice); save(); ui.msg = esc(r.text); ui.ups = null; if (r.skillGot) ui.popup = { kind: "great", great: false, gains: null, skill: r.skillGot }; }
+      else if (d.choice != null) { const r = E.resolveEvent(game, +d.choice); save(); ui.msg = esc(r.text); ui.ups = null; S.play(r.skillGot ? "skill" : "tap"); if (r.skillGot) ui.popup = { kind: "great", great: false, gains: null, skill: r.skillGot }; }
       else if (d.keep) ui.keep = d.keep;
       else act(d.act);
     } catch (e) {
@@ -380,7 +388,13 @@
         tick();
         return;
       }
-      case "skip": clearTimeout(ui.timer); ui.tour.shown = Infinity; return;
+      case "skip": {
+        clearTimeout(ui.timer); ui.tour.shown = Infinity;
+        const last = ui.tour.res.rounds[ui.tour.res.rounds.length - 1];
+        S.play(last.win ? "win" : "lose");
+        return;
+      }
+      case "sound": S.setOn(!S.isOn()); if (S.isOn()) S.play("good"); return;
       case "tour-done": ui.tour = null; ui.msg = null; ui.ups = null; return;
       case "retire":
         if (!confirm("引退して、次の人生に生まれ変わりますか？")) return;
@@ -389,7 +403,7 @@
       case "reborn":
         E.reincarnate(game, { keepSkill: ui.keep || undefined });
         save();
-        Object.assign(ui, { view: null, grew: false, msg: null, sportPick: null, keep: undefined, ups: null });
+        Object.assign(ui, { view: null, grew: false, msg: null, sportPick: null, keep: undefined, ups: null, goldPlayed: false });
         return;
       case "book": ui.prev = ui.view; ui.view = "book"; return;
       case "back": ui.view = ui.view === "book" ? ui.prev : null; ui.prev = null; return;
