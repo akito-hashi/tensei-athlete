@@ -122,16 +122,16 @@
   // level: 相手の強さ。順番は「どこまで行ったか」の高さ
   // 数値は tests/balance.test.js のボットで調整（上手な人で 3〜5回目の人生に金）
   const STAGES = [
-    { id: "chiku", name: "地区大会", level: 80 },
-    { id: "ken_j", name: "県大会（中学）", level: 130 },
-    { id: "zenkoku_j", name: "全国中学大会", level: 190 },
-    { id: "ken_h", name: "県大会（高校）", level: 240 },
-    { id: "chiho", name: "地方大会", level: 300 },
-    { id: "inter", name: "インターハイ", level: 370 },
+    { id: "chiku", name: "地区大会", level: 45 },
+    { id: "ken_j", name: "県大会（中学）", level: 85 },
+    { id: "zenkoku_j", name: "全国中学大会", level: 150 },
+    { id: "ken_h", name: "県大会（高校）", level: 160 },
+    { id: "chiho", name: "地方大会", level: 220 },
+    { id: "inter", name: "インターハイ", level: 300 },
     { id: "nihon_q", name: "日本選手権 予選", level: 460 },
     { id: "nihon", name: "日本選手権", level: 570 },
     { id: "sekai", name: "世界選手権", level: 680 },
-    { id: "olympic", name: "オリンピック", level: 740 },
+    { id: "olympic", name: "オリンピック", level: 750 },
   ];
   const LUCK_SCALE = 24;
   // 転生ボーナス：毎回 INHERIT_BASE ＋ 勝ち進んだ大会の段数 × INHERIT_PER_STAGE（能力の伸びと初期値にかかる）

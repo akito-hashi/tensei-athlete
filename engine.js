@@ -22,7 +22,7 @@
   function newGame({ name, gender, seed }) {
     return {
       v: 1,
-      name: String(name || "").trim() || "ななし",
+      name: String(name || "").trim().slice(0, 10) || "ななし",
       gender: gender === "f" ? "f" : "m",
       rng: (seed == null ? Math.floor(Math.random() * 2 ** 32) : seed) >>> 0,
       lifeNo: 0,
