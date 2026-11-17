@@ -15,7 +15,7 @@
   function load() {
     try {
       const s = JSON.parse(localStorage.getItem(KEY));
-      if (s && s.v === 1 && s.game && s.game.life && s.game.inherit && s.game.medals) return s.game;
+      if (s && s.v === 1 && E.sanitize(s.game)) return s.game;
     } catch (e) { /* こわれたセーブは無視して新しく始められるようにする */ }
     return null;
   }
@@ -25,7 +25,7 @@
 
   // ---- 小物 ----
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const pct = (x) => Math.round(x * 100) + "%";
+  const pct = (x) => (x < 0.005 ? "<1%" : x > 0.995 ? ">99%" : Math.round(x * 100) + "%");
   const SPORT_ICON = { track: "🏃", judo: "🥋", gym: "🤸" };
   const PRACTICE_ICON = { t_dash: "💨", t_hill: "⛰️", t_jog: "👟", t_form: "📐", j_uchi: "🤼", j_kin: "🏋️", j_rand: "🔥", j_ashi: "🦶", g_tetsu: "🔩", g_yuka: "🌀", g_wa: "⭕", g_ime: "🧘" };
   const LESSON_ICON = { track: "🏃", judo: "🥋", gym: "🤸", play: "⚽" };
@@ -73,12 +73,22 @@
   }
 
   function render() {
+    try { draw(); } catch (e) {
+      console.error(e);
+      Object.assign(ui, { view: "title", popup: null, tour: null, confirm: null });
+      ui.broken = true;
+      draw();
+    }
+  }
+  function draw() {
     const v = view();
     if (v !== "gold") document.querySelectorAll(".confetti").forEach((c) => c.remove());
     app.dataset.screen = v;
     app.innerHTML = SCREENS[v]();
     if (ui.popup) app.insertAdjacentHTML("beforeend", popupHtml(ui.popup));
-    const focus = app.querySelector("#popup [data-act=ok]") || app.querySelector("[autofocus]");
+    if (ui.confirm) app.insertAdjacentHTML("beforeend", `<div id="confirm" role="dialog" aria-modal="true"><div class="card ev">${ui.confirm.text}</div>
+      <button class="btn" data-act="confirm-yes">${ui.confirm.yesLabel}</button><button class="btn blue" data-act="confirm-no">やめる</button></div>`);
+    const focus = app.querySelector("#confirm [data-act=confirm-no]") || app.querySelector("#popup [data-act=ok]") || app.querySelector("[autofocus]");
     if (focus) focus.focus({ preventScroll: true });
   }
 
@@ -90,6 +100,7 @@
       return `<div class="light" style="left:-20px"></div><div class="light" style="right:-20px"></div>
         <div class="logo"><div class="small">めざせ 金メダル</div><h1 class="big hot" style="margin:6px 0 0;font-weight:400">転生<br>アスリート</h1><div class="medal" aria-hidden="true">🥇</div></div>
         <div class="babies grow"><span aria-hidden="true">👶🧒🧑🏃🏅</span><small>何度生まれ変わっても、あの表彰台へ</small></div>
+        ${ui.broken ? `<div class="sub center">セーブをうまく読みこめなかった。はじめから遊んでね。</div>` : ""}
         <button class="btn" data-act="new">はじめから</button>${cont}
         <div class="row between"><button class="link" data-act="sound" aria-label="効果音のオンオフ">${S.isOn() ? "🔊 音あり" : "🔇 音なし"}</button>${game ? `<button class="link" data-act="book">メダル図鑑</button>` : ""}</div>`;
     },
@@ -115,8 +126,8 @@
         ${game.inherit.innateSkills.length ? `／ 生まれつき：<b>${game.inherit.innateSkills.map((id) => D.SKILLS[id].name).join("・")}</b>` : ""}</div>` : "";
       return `<div class="headline"><div class="t">${game.lifeNo}回目の人生</div><h2>おぎゃあ！ ${esc(game.name)} 誕生</h2></div>
         <div class="crib" aria-hidden="true">👶</div>
-        <div class="gacha card"><div class="lbl">この人生でいちばんの才能</div><div class="rank hot">${L.talents[best]}</div><div class="what">${sportName(best)}の才能</div></div>
-        <div class="three">${D.SPORTS.map((s) => `<div class="card">${D.SPORT_INFO[s].short}<b class="hot r-${L.talents[s]}">${L.talents[s]}</b></div>`).join("")}</div>
+        <div class="gacha card"><div class="lbl">この人生でいちばんの才能</div><div class="rank hot">${esc(L.talents[best])}</div><div class="what">${sportName(best)}の才能</div></div>
+        <div class="three">${D.SPORTS.map((s) => `<div class="card">${D.SPORT_INFO[s].short}<b class="hot r-${esc(L.talents[s])}">${esc(L.talents[s])}</b></div>`).join("")}</div>
         ${inh}<div class="grow"></div>
         <button class="btn blue" data-act="grow" autofocus>すくすく育てる</button>`;
     },
@@ -143,8 +154,8 @@
       return `<div class="q card">いよいよ中学生。<b>何の部活に入る？</b><br><span class="sub">${memory}</span></div>
         <div class="sports">${D.SPORTS.map((s) => `<button class="sp card" data-sport="${s}" aria-pressed="${s === pick}">
           ${s === rec ? '<span class="chip tag">おすすめ</span>' : ""}<div class="ic" aria-hidden="true">${SPORT_ICON[s]}</div>
-          <div><b>${sportName(s)}</b><span>${desc[s]}${game.inherit.exp[s] ? ` ・ 前世の経験 Lv.${game.inherit.exp[s]}` : ""}</span></div>
-          <div class="rank">才能<i class="r-${L.talents[s]}">${L.talents[s]}</i></div></button>`).join("")}</div>
+          <div><b>${sportName(s)}</b><span>${desc[s]}${game.inherit.exp[s] ? ` ・ 前世の経験 Lv.${game.inherit.exp[s]}` : ""}<br>大事：${E.keyStats(s).map((k) => D.STAT_LABELS[k]).join("・")}</span></div>
+          <div class="rank">才能<i class="r-${esc(L.talents[s])}">${esc(L.talents[s])}</i></div></button>`).join("")}</div>
         <div class="grow"></div>
         <button class="btn" data-act="join">${D.SPORT_INFO[pick].short}部に入る！</button>`;
     },
@@ -156,7 +167,7 @@
       const left = D.TURNS_PER_YEAR - L.slot;
       const acts = E.actions(L);
       const here = new Set(acts.flatMap((a) => a.friends));
-      const msg = ui.msg || (L.injured ? `ケガが治るまで、あと ${L.injured}ターン。休むか遊ぼう。` : L.stamina < 40 ? "体力が少ない…。無理すると失敗やケガをしやすい。" : "どの練習をする？ 仲間がいる練習は大成功しやすい！");
+      const msg = ui.msg || (left === 1 ? "このターンが終わると大会！ 体力とやる気が高いほど本番で力が出る。" : L.injured ? `ケガが治るまで、あと ${L.injured}ターン。休むか遊ぼう。` : L.stamina < 40 ? "体力が少ない…。無理すると失敗やケガをしやすい。" : "どの練習をする？ ★は大事な練習。仲間がいると大成功しやすい！");
       const btn = (a) => {
         if (a.kind === "rest") return `<button class="m card" data-action="rest"><span class="ic" aria-hidden="true">🛌</span>休む<small>体力 回復</small></button>`;
         if (a.kind === "play") return `<button class="m card" data-action="play"><span class="ic" aria-hidden="true">🎮</span>遊ぶ<small>やる気 UP</small></button>`;
@@ -164,12 +175,12 @@
         return `<button class="m card" data-action="${a.id}" ${a.enabled ? "" : "disabled"}>
           ${a.friends.length ? `<span class="frs" aria-label="${a.friends.map((f) => friend(f).name).join("、")}がいる">${a.friends.map((f) => friend(f).emoji).join("")}</span>` : ""}
           ${a.enabled && a.risk >= 0.1 ? `<span class="risk">失敗${pct(a.risk)}</span>` : ""}
-          <span class="ic" aria-hidden="true">${PRACTICE_ICON[a.id]}</span>${a.label}<small>${D.STAT_LABELS[g.stat]} +${g.main}</small></button>`;
+          <span class="ic" aria-hidden="true">${PRACTICE_ICON[a.id]}</span>${a.key ? '<span class="key" aria-label="大事な練習">★</span>' : ""}${a.label}<small>${D.STAT_LABELS[g.stat]} +${g.main}</small></button>`;
       };
       return `<div class="row between">${lifebar()}<span class="chip card" style="color:var(--blue)">${schoolLabel(L.age)} ${SEASONS[L.slot]}</span></div>
         <div class="gauges"><div class="g card">体力 <span class="num">${L.stamina}</span><div class="bar"><i style="width:${L.stamina}%;background:${L.stamina < 30 ? "var(--red)" : "var(--green)"}"></i></div></div>
           <div class="g card">やる気 ${MOT_FACE[L.motivation - 1]} ${D.MOTIVATION_LABELS[L.motivation - 1]}<div class="bar"><i style="width:${L.motivation * 20}%;background:#ffb000"></i></div></div></div>
-        <div class="stats">${D.STATS.map((k) => `<div class="s card ${ui.ups && ui.ups[k] ? "up" : ""}">${D.STAT_LABELS[k]}<b class="num">${L.stats[k]}</b><span class="gr">${grade(L.stats[k])}</span></div>`).join("")}</div>
+        <div class="stats">${D.STATS.map((k) => `<div class="s card ${ui.ups && ui.ups[k] ? "up" : ""} ${E.keyStats(L.sport).includes(k) ? "keystat" : ""}">${E.keyStats(L.sport).includes(k) ? "★" : ""}${D.STAT_LABELS[k]}<b class="num">${L.stats[k]}</b><span class="gr">${grade(L.stats[k])}</span></div>`).join("")}</div>
         <div class="goal card"><span>次は${pv.stages[0].name}・あと${left}ターン</span><span class="pct">勝てる見込み ${pct(pv.stages[0].chance)}</span></div>
         <div class="scene ${L.sport}"><span class="me" aria-hidden="true">${meIcon()}</span>${[...here].map((f) => `<span class="fr" aria-hidden="true">${friend(f).emoji}</span>`).join("")}</div>
         <div class="say card grow">${msg}</div>
@@ -181,6 +192,7 @@
       setTheme("day");
       const ev = D.EVENTS.find((e) => e.id === game.life.pendingEvent);
       return `<div class="row between">${lifebar()}<span class="chip card" style="color:var(--blue)">${schoolLabel(game.life.age)} ${SEASONS[Math.max(0, game.life.slot - 1)]}</span></div>
+        ${ui.msg ? `<div class="say card">${ui.msg}</div>` : ""}
         <div class="grow"></div>
         <div class="big-emoji" aria-hidden="true">${meIcon()}❓</div>
         <div class="ev card"><span class="chip tag">できごと</span><p style="margin:8px 0 0">${ev.text}</p></div>
@@ -194,10 +206,13 @@
       const pv = E.tournamentPreview(game);
       const L = game.life;
       const sk = L.skills.filter((id) => D.SKILLS[id].power && (!D.SKILLS[id].sport || D.SKILLS[id].sport === L.sport));
+      const all = pv.stages.reduce((a, s) => a * s.chance, 1);
       return `<div class="spot"></div>
         <div class="tour-title"><div class="t1">${schoolLabel(L.age)} ・ ${L.age}歳</div><div class="t2 hot">今年の大会</div></div>
+        ${ui.msg ? `<div class="sub center">最後の練習：${ui.msg}</div>` : ""}
         <div class="sub center">勝ち進むほど上の大会へ。負けたらそこで今年は終わり。</div>
         ${pv.stages.map((s) => `<div class="stage glass ${s.id}"><div class="row between"><span>${s.id === "olympic" ? "🏟️ " : ""}${s.name}</span><span class="num">${pct(s.chance)}</span></div><div class="bar2"><i style="width:${pct(s.chance)}"></i></div></div>`).join("")}
+        <div class="center"><span class="chip" style="background:var(--gold);color:#3a1d00">${pv.stages[pv.stages.length - 1].name}優勝までの見込み ${pct(all)}</span></div>
         <div class="sub center">体力 ${L.stamina} ・ やる気 ${MOT_FACE[L.motivation - 1]}${sk.length ? ` ・ スキル ${sk.map((id) => D.SKILLS[id].name).join("・")}` : ""}<br>※体力とやる気が高いほど、本番で力が出る</div>
         <div class="grow"></div>
         <button class="btn" data-act="fight" autofocus>いざ、勝負！</button>`;
@@ -231,7 +246,7 @@
             <span class="ms num">🥇 ${x.gold}</span><span class="num" style="font-size:12px">🥈 ${x.silver} 🥉 ${x.bronze}</span><small>${x.best ? "最高：" + x.best : "まだ挑戦していない"}</small></div>`;
         }).join("")}</div>
         ${game.cleared ? `<div class="clearbox hot">🏆 金メダル達成！<small style="font-family:'Zen Maru Gothic'">すべての競技で金を集めてみよう</small></div>` : `<div class="clearbox"><b>目標：オリンピックで金メダル</b><small>22歳と26歳の年に、日本選手権で勝てば出場できる</small></div>`}
-        <div class="lives card">${lives.length ? lives.map((l) => `<div>${l.lifeNo}回目：${sportName(l.sport)} ・ ${l.bestName || "初戦敗退"}${l.medal ? " " + medalIcon[l.medal] : ""}</div>`).join("") : '<div class="sub">まだ前世の記録はない</div>'}</div>
+        <div class="lives card">${lives.length ? lives.map((l) => `<div>${l.lifeNo}回目：${sportName(l.sport)} ・ ${esc(l.bestName || "初戦敗退")}${l.medal ? " " + medalIcon[l.medal] : ""}</div>`).join("") : '<div class="sub">まだ前世の記録はない</div>'}</div>
         <div class="grow"></div>
         <button class="btn blue" data-act="back">もどる</button>`;
     },
@@ -249,9 +264,9 @@
       <div class="lbl-gold">次の人生に引きつぐもの</div>
       <div class="ih">能力の伸び <b>+${Math.round(gain * 100)}%</b></div>
       <div class="ih">${sportName(L.sport)}の経験 <b>Lv.${game.inherit.exp[L.sport] + 1}</b></div>
-      ${cand.length ? `<div class="lbl-gold">生まれつき持っていくスキルを 1つ</div><div class="keeps">${cand.map((id) => `<button data-keep="${id}" aria-pressed="${ui.keep === id}">${D.SKILLS[id].name}</button>`).join("")}</div>` : `<div class="sub">覚えたスキルはなかった。次の人生では仲間と練習してみよう。</div>`}
+      ${cand.length ? `<div class="lbl-gold">生まれつき持っていくスキルを 1つ</div><div class="keeps">${cand.map((id) => `<button data-keep="${esc(id)}" aria-pressed="${ui.keep === id}">${D.SKILLS[id].name}</button>`).join("")}</div>` : `<div class="sub">覚えたスキルはなかった。次の人生では仲間と練習してみよう。</div>`}
       <div class="grow"></div>
-      <div class="big-emoji" aria-hidden="true" style="font-size:54px;filter:drop-shadow(0 0 20px #9fd0ff)">👻✨</div>
+      <div class="big-emoji ghost" aria-hidden="true" style="font-size:54px;filter:drop-shadow(0 0 20px #9fd0ff)">👻✨</div>
       <button class="btn" data-act="reborn">生まれ変わる！</button>
       ${fromGold ? `<button class="link" data-act="back">もどる</button>` : `<button class="link" data-act="book">メダル図鑑</button>`}`;
   }
@@ -267,10 +282,11 @@
   }
   function tourReplay() {
     const t = ui.tour, items = tourItems(t.res);
-    const done = t.shown >= items.length;
-    const shown = items.slice(Math.max(0, t.shown - 9), t.shown);
+    const n = Math.min(t.shown, items.length);
+    const done = n >= items.length;
+    const shown = items.slice(Math.max(0, n - 8), n);
     const last = t.res.rounds[t.res.rounds.length - 1];
-    const summary = done ? (t.res.medal === "gold" ? "🥇 金メダル！！" : last.win ? `🏆 ${last.name} 優勝！` : `今年は ${last.name} まで`) : "";
+    const summary = !done ? "" : t.res.medal ? `${medalIcon[t.res.medal]} ${medalName[t.res.medal]}！` : last.win ? `🏆 ${last.name} 優勝！` : `今年は ${last.name} まで`;
     return `<div class="spot"></div>
       <div class="tour-title"><div class="t1">${t.res.age}歳の大会</div><div class="t2 hot">${done ? summary : "実況中"}</div></div>
       <div class="feed glass grow">${shown.map((x) => `<p class="${x.cls}">${esc(x.text)}</p>`).join("")}</div>
@@ -366,11 +382,14 @@
   function act(a) {
     switch (a) {
       case "new":
-        if (game && !confirm("今のセーブを消して、はじめから始めますか？（メダル図鑑も消えます）")) return;
+        if (game) { ui.confirm = { text: "今のセーブを消して、はじめから始めますか？<br><span class='sub'>メダル図鑑も消えます。</span>", yesLabel: "消して はじめから", yes: () => { ui.view = "name"; } }; return; }
         ui.view = "name"; return;
-      case "continue": ui.view = null; ui.msg = null; return;
+      case "confirm-yes": { const f = ui.confirm && ui.confirm.yes; ui.confirm = null; if (f) f(); return; }
+      case "confirm-no": ui.confirm = null; return;
+      case "continue": ui.view = null; ui.msg = null; ui.broken = false; return;
       case "title": ui.view = "title"; ui.popup = null; return;
       case "start": {
+        ui.broken = false;
         const name = (document.getElementById("name").value || "").trim().slice(0, 10);
         game = E.newGame({ name, gender: ui.gender });
         E.startLife(game);
@@ -397,8 +416,8 @@
       case "sound": S.setOn(!S.isOn()); if (S.isOn()) S.play("good"); return;
       case "tour-done": ui.tour = null; ui.msg = null; ui.ups = null; return;
       case "retire":
-        if (!confirm("引退して、次の人生に生まれ変わりますか？")) return;
-        E.retire(game); save(); return;
+        ui.confirm = { text: "引退して、次の人生の準備をしますか？", yesLabel: "引退する", yes: () => { E.retire(game); save(); ui.msg = null; } };
+        return;
       case "nextlife": ui.view = "nextlife"; return;
       case "reborn":
         E.reincarnate(game, { keepSkill: ui.keep || undefined });

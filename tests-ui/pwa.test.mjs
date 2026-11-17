@@ -123,10 +123,10 @@ test("音はタイトルで消せて、その設定が残る。音ありで遊�
   await p.$eval('[data-act="grow"]', (e) => e.click());
   for (let i = 0; i < 4; i++) await p.$eval('[data-lesson="track"]', (e) => e.click());
   await p.$eval('[data-act="join"]', (e) => e.click());
-  for (let i = 0; i < 30 && (await p.$eval("#app", (el) => el.dataset.screen)) !== "tour"; i++) {
+  for (let i = 0; i < 100 && (await p.$eval("#app", (el) => el.dataset.screen)) !== "tour"; i++) {
     if (await p.$("#popup")) await p.$eval('#popup [data-act="ok"]', (e) => e.click());
     else if (await p.$("[data-choice]")) await p.$eval('[data-choice="0"]', (e) => e.click());
-    else await p.$eval('[data-action="t_dash"]', (e) => e.click());
+    else await p.$eval('[data-action="t_dash"]', (e) => (e.disabled ? document.querySelector('[data-action="rest"]') : e).click());
   }
   await p.$eval('[data-act="fight"]', (e) => e.click());
   await new Promise((r) => setTimeout(r, 1500));

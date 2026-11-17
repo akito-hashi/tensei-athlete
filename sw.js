@@ -2,7 +2,7 @@
 // アプリのファイル：ネットから最新を取り、つながらないときだけ保存済みを使う。
 // 書体（Google Fonts）：一度読み込んだものを保存して使う。
 // ファイルを追加・改名したときは FILES を直し、VERSION の数字を上げる。
-const VERSION = "v1";
+const VERSION = "v2";
 const CACHE = "tensei-athlete-" + VERSION;
 const FONT_CACHE = "tensei-athlete-fonts";
 const FILES = [
@@ -48,7 +48,8 @@ self.addEventListener("fetch", (event) => {
 
   if (url.origin !== self.location.origin) return;
   event.respondWith(
-    fetch(req)
+    // HTTP キャッシュを通さずに確認する（更新直後に新旧のファイルが混ざらないように）
+    fetch(req, { cache: "no-cache" })
       .then((res) => {
         if (res.ok) {
           const copy = res.clone();

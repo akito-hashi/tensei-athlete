@@ -195,3 +195,50 @@ button:disabled { cursor: not-allowed; opacity: .45; filter: grayscale(.6); }
   *, *::before, *::after { animation: none !important; transition: none !important; }
   .confetti { display: none; }
 }
+
+/* 画面内の確認（ブラウザの confirm は LINE などで出ないことがある） */
+#confirm { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; justify-content: center; gap: 12px; padding: 24px; background: rgba(10, 22, 48, .78); }
+#confirm > * { max-width: 420px; width: 100%; margin: 0 auto; }
+
+/* 大事な練習・能力 */
+.m .key { color: #ff8a00; margin-right: 1px; }
+.s.keystat { box-shadow: 0 0 0 2px var(--gold), 0 3px 0 var(--line); }
+
+/* 育成画面は画面の高さぴったりに。場面の絵が縮み、文章は長ければ中でスクロール */
+#app[data-screen="train"] { height: 100dvh; min-height: 0; }
+#app[data-screen="train"] .scene { flex: 1 1 0; min-height: 44px; }
+#app[data-screen="train"] .say { flex: 0 1 auto; min-height: 44px; overflow-y: auto; }
+#app[data-screen="train"] .say.grow { flex-grow: 0; }
+
+/* 背の低い画面（Safari のツールバーが出ている iPhone SE など） */
+@media (max-height: 620px) {
+  #app { gap: 6px; }
+  .logo { margin-top: 3vh; }
+  .logo .big { font-size: 42px; }
+  .logo .medal { font-size: 48px; margin-top: 2px; }
+  .babies { font-size: 28px; }
+  .crib { width: 104px; height: 104px; font-size: 54px; }
+  .gacha { padding: 10px; }
+  .gacha .rank { font-size: 46px; }
+  .headline h2 { font-size: 21px; }
+  .age .who { font-size: 46px; }
+  .age .n { font-size: 44px; }
+  .lessons button { padding: 10px 6px; }
+  .lessons .ic { font-size: 28px; }
+  .sp { padding: 9px 12px; }
+  .sp .ic { width: 46px; height: 46px; font-size: 30px; }
+  .big-emoji { font-size: 52px; }
+  .ghost { display: none; }
+  .goldmedal { font-size: 84px; }
+  .goldtext { font-size: 28px; }
+  .stage { padding: 8px 12px; }
+  .ev { padding: 14px; font-size: 15px; }
+  .btn { padding: 12px; }
+  .field { padding: 10px 12px; }
+  .ih { padding: 6px 12px; }
+  .result { padding: 10px 12px; line-height: 1.65; }
+  .great { font-size: 34px; }
+  .skill .nm { font-size: 24px; }
+  .upl { padding: 7px 14px; }
+}
+#confirm .card .sub { color: var(--sub); }
